@@ -53,70 +53,76 @@ final class PairingController: ObservableObject {
         }
     }
 
-    /// Ensures the given pairing file is mirrored to canonical aircard_pairing.plist and airlift_pairing.plist.
+    /// Canonical pairing storage. Kept in Application Support so the credential
+    /// is not exposed via File Sharing (pre-2.5 builds stored it in Documents).
+    private static var secureDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    }
+
+    /// Legacy location from pre-2.5 builds. Migrated once, then cleaned up.
+    private static var legacyDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+
+    private static let legacyPairingNames = ["aircard_pairing.plist", "airlift_pairing.plist"]
+
+    private static func isValidPairingFile(at path: String) -> Bool {
+        let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int) ?? 0
+        return size > 0
+    }
+
+    /// Ensures the given pairing file is stored at the canonical secure
+    /// location. Legacy Documents copies are removed so the credential is no
+    /// longer exposed via File Sharing.
     @discardableResult
     static func syncCanonicalPairingFile(from sourcePath: String) -> String {
-        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let aircardURL = dir.appendingPathComponent("aircard_pairing.plist")
-        let airliftURL = dir.appendingPathComponent("airlift_pairing.plist")
+        let dir = secureDirectory
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let canonicalURL = dir.appendingPathComponent("aircard_pairing.plist")
 
         if let data = try? Data(contentsOf: URL(fileURLWithPath: sourcePath)), !data.isEmpty {
-            if sourcePath != aircardURL.path {
-                try? data.write(to: aircardURL, options: .atomic)
+            if sourcePath != canonicalURL.path {
+                try? data.write(to: canonicalURL, options: .atomic)
             }
-            if sourcePath != airliftURL.path {
-                try? data.write(to: airliftURL, options: .atomic)
+            for legacyName in legacyPairingNames {
+                let legacyURL = legacyDirectory.appendingPathComponent(legacyName)
+                if legacyURL.path != sourcePath, legacyURL.path != canonicalURL.path {
+                    try? FileManager.default.removeItem(at: legacyURL)
+                }
             }
-            customPairingFilePath = aircardURL.path
-            return aircardURL.path
+            customPairingFilePath = canonicalURL.path
+            return canonicalURL.path
         }
         return sourcePath
     }
 
     /// Path where the pairing file is written or read from.
-    /// Checks for canonical aircard_pairing.plist, custom path, or any plist in Documents,
-    /// automatically adopting and standardizing it.
+    /// Checks the canonical secure location first, then migrates legacy
+    /// Documents copies (pre-2.5) once. Pairing files are imported explicitly
+    /// through the document picker; Documents is no longer scanned.
     static func pairingFilePath() -> String {
-        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let aircardPath = dir.appendingPathComponent("aircard_pairing.plist").path
-        if FileManager.default.fileExists(atPath: aircardPath) {
-            let size = (try? FileManager.default.attributesOfItem(atPath: aircardPath)[.size] as? Int) ?? 0
-            if size > 0 { return aircardPath }
-        }
+        // Application Support is not created by the system; the pairing host
+        // writes directly to this path via FFI, so the directory must exist.
+        try? FileManager.default.createDirectory(
+            at: secureDirectory, withIntermediateDirectories: true)
+        let canonicalPath = secureDirectory
+            .appendingPathComponent("aircard_pairing.plist").path
+        if isValidPairingFile(at: canonicalPath) { return canonicalPath }
 
-        let airliftPath = dir.appendingPathComponent("airlift_pairing.plist").path
-        if FileManager.default.fileExists(atPath: airliftPath) {
-            let size = (try? FileManager.default.attributesOfItem(atPath: airliftPath)[.size] as? Int) ?? 0
-            if size > 0 {
-                _ = syncCanonicalPairingFile(from: airliftPath)
-                return aircardPath
+        for legacyName in legacyPairingNames {
+            let legacyPath = legacyDirectory.appendingPathComponent(legacyName).path
+            if isValidPairingFile(at: legacyPath) {
+                _ = syncCanonicalPairingFile(from: legacyPath)
+                if isValidPairingFile(at: canonicalPath) { return canonicalPath }
             }
         }
 
-        if let custom = customPairingFilePath, FileManager.default.fileExists(atPath: custom) {
-            let size = (try? FileManager.default.attributesOfItem(atPath: custom)[.size] as? Int) ?? 0
-            if size > 0 {
-                _ = syncCanonicalPairingFile(from: custom)
-                return aircardPath
-            }
+        if let custom = customPairingFilePath, isValidPairingFile(at: custom) {
+            _ = syncCanonicalPairingFile(from: custom)
+            if isValidPairingFile(at: canonicalPath) { return canonicalPath }
         }
 
-        // Scan Documents directory for any .plist file
-        if let files = try? FileManager.default.contentsOfDirectory(atPath: dir.path) {
-            let plists = files.filter {
-                $0.hasSuffix(".plist") || $0.hasSuffix(".mobiledevicepairing") || $0.hasSuffix(".mobilepair")
-            }
-            for candidate in plists {
-                let candidatePath = dir.appendingPathComponent(candidate).path
-                let size = (try? FileManager.default.attributesOfItem(atPath: candidatePath)[.size] as? Int) ?? 0
-                if size > 0 {
-                    _ = syncCanonicalPairingFile(from: candidatePath)
-                    return aircardPath
-                }
-            }
-        }
-
-        return aircardPath
+        return canonicalPath
     }
 
     /// Start the host and resolve with the pairing-file path, or throw.

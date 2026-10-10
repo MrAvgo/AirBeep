@@ -56,4 +56,7 @@
 "Clear Log" = "Clear Log";
 "AirBeep silences the call-recording disclosure tone with one switch. Original tones are backed up before the first change and restored when the switch is turned off." = "AirBeep silences the call-recording disclosure tone with one switch. Original tones are backed up before the first change and restored when the switch is turned off.";
 "Supported system: %@" = "Supported system: %@";
+"Recheck tones" = "Recheck tones";
+"Preview current tone" = "Preview current tone";
+"Playing…" = "Playing…";
 

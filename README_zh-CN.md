@@ -2,6 +2,8 @@
 
 > 🌍 **Languages:** [English](./README.md) | 简体中文
 
+> 🍴 **Fork 说明：** 这是 [LinkPass888/AirBeep](https://github.com/LinkPass888/AirBeep) 的 fork，新增改进：手动“重新检测”按钮、“试听当前提示音”按钮、备份与配对凭证迁出文件共享可见范围（Library/Application Support）、每个 Release 附带 SHA256 校验。详见 [CHANGELOG.md](./CHANGELOG.md)。
+
 AirBeep 是一款 iOS 工具，用于静音系统内置的通话录音提示音。只需拨动一个开关，即可将开始与结束提示音替换为等长静音；再次拨动开关，即可从自动备份中恢复原始文件。
 
 
@@ -20,7 +22,7 @@ AirBeep 会请求以下系统文件的容器级访问权限：
 - `/var/mobile/Library/CallServices/Greetings/default/StartDisclosureWithTone.m4a`
 - `/var/mobile/Library/CallServices/Greetings/default/StopDisclosure.caf`
 
-替换文件基于 AirliftSilence 的静音资源，并保持原始时长。备份保存在应用 Documents 目录下的 `AirBeepBackups` 中。
+替换文件基于 AirliftSilence 的静音资源，并保持原始时长。备份保存在应用 Library/Application Support 目录下的 `AirBeepBackups` 中（旧版本在 Documents 下的备份会自动迁移）。
 
 ## 系统要求
 

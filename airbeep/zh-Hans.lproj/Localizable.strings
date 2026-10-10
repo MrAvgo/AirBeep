@@ -56,4 +56,7 @@
 "Clear Log" = "清除日志";
 "AirBeep silences the call-recording disclosure tone with one switch. Original tones are backed up before the first change and restored when the switch is turned off." = "AirBeep 用一个开关即可将通话录音提示音静音。首次修改前会自动备份原始提示音，关闭开关后即可恢复。";
 "Supported system: %@" = "支持的系统：%@";
+"Recheck tones" = "重新检测提示音";
+"Preview current tone" = "试听当前提示音";
+"Playing…" = "播放中…";
 

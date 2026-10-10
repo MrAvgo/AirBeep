@@ -1,3 +1,4 @@
+import AVFoundation
 import Combine
 import Foundation
 import UIKit
@@ -74,10 +75,13 @@ final class CallRecordingToneService: ObservableObject {
 
     @Published private(set) var mode: ToneMode = .checking
     @Published private(set) var isBusy = false
+    @Published private(set) var isPreviewing = false
     @Published private(set) var lastError: String?
     @Published private(set) var statusDetail: String?
     @Published private(set) var needsAirliftSetup = false
     @Published private(set) var busyMessage: String?
+
+    private var previewPlayer: AVAudioPlayer?
 
     private enum AccessBackend {
         case airlift(pairingPath: String)
@@ -108,12 +112,40 @@ final class CallRecordingToneService: ObservableObject {
         )
     ]
 
+    /// Backups live in Application Support so they are not exposed via
+    /// File Sharing (pre-2.5 builds used Documents/AirBeepBackups).
     private var backupDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appending(path: "AirBeepBackups", directoryHint: .isDirectory)
+    }
+
+    private var legacyBackupDirectory: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appending(path: "AirBeepBackups", directoryHint: .isDirectory)
     }
 
-    private init() {}
+    private init() {
+        migrateLegacyBackupIfNeeded()
+    }
+
+    /// One-time migration of backups left in Documents by older builds.
+    private func migrateLegacyBackupIfNeeded() {
+        let flag = "AirBeepBackupMigratedToAppSupport"
+        guard !UserDefaults.standard.bool(forKey: flag) else { return }
+        UserDefaults.standard.set(true, forKey: flag)
+        let fm = FileManager.default
+        let legacy = legacyBackupDirectory
+        let target = backupDirectory
+        guard fm.fileExists(atPath: legacy.path),
+              !fm.fileExists(atPath: target.path)
+        else { return }
+        try? fm.createDirectory(
+            at: target.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try? fm.moveItem(at: legacy, to: target)
+        AirBeepLog.shared.append("migrated legacy backup dir to Application Support")
+    }
 
     func refresh() async {
         guard !isBusy else { return }
@@ -132,6 +164,64 @@ final class CallRecordingToneService: ObservableObject {
 
     func clearError() {
         lastError = nil
+    }
+
+    /// Forces a real read of the system tone files and re-syncs the cached
+    /// mode. Use after a system language change or iOS update, which can
+    /// restore the original tones behind the app's back (the app never probes
+    /// at launch, so the cached mode may be stale).
+    func recheck() async {
+        guard !isBusy else { return }
+        isBusy = true
+        defer { isBusy = false }
+        AirBeepLog.shared.append("recheck: start")
+
+        do {
+            let backend = try accessBackend()
+            let current = try await readTones(using: backend)
+            let silent = try silentTones()
+            if current == silent {
+                mode = .silentTone
+            } else if let backup = try? readBackups(), current == backup {
+                mode = .systemTone
+            } else {
+                // Files match neither known state (e.g. restored by the system
+                // with no backup on record): treat the originals as active.
+                mode = .systemTone
+            }
+            ToneModeCache.save(mode)
+            statusDetail = nil
+            needsAirliftSetup = false
+            lastError = nil
+            AirBeepLog.shared.append("recheck: mode = \(mode)")
+        } catch {
+            reportOperationError(error)
+        }
+    }
+
+    /// Reads the live system tone files and plays the start disclosure tone
+    /// back, so the user can hear what the other party would hear without
+    /// placing a test call. Failures surface via the standard alert without
+    /// disturbing the cached mode.
+    func previewCurrentTone() async {
+        guard !isBusy && !isPreviewing else { return }
+        isPreviewing = true
+        defer { isPreviewing = false }
+        AirBeepLog.shared.append("previewCurrentTone: start")
+
+        do {
+            let backend = try accessBackend()
+            let tones = try await readTones(using: backend)
+            guard let data = tones.first else {
+                throw CallRecordingToneError.missingTone(files.first?.name ?? "tone")
+            }
+            previewPlayer = try AVAudioPlayer(data: data)
+            previewPlayer?.play()
+            AirBeepLog.shared.append("previewCurrentTone: playing \(data.count) bytes")
+        } catch {
+            lastError = error.localizedDescription
+            AirBeepLog.shared.append("previewCurrentTone error: \(error.localizedDescription)")
+        }
     }
 
     func applySilentTone() async {

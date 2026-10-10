@@ -18,6 +18,7 @@ struct AirBeepRootView: View {
                         airliftSetupCard
                     }
                     toneToggle
+                    toolsRow
                     details
                 }
                 .padding(20)
@@ -134,6 +135,31 @@ struct AirBeepRootView: View {
         }
         .padding(16)
         .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 16))
+    }
+
+    private var toolsRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                Task { await service.recheck() }
+            } label: {
+                Label("Recheck tones", systemImage: "arrow.clockwise")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(service.isBusy || service.isPreviewing)
+
+            Button {
+                Task { await service.previewCurrentTone() }
+            } label: {
+                Label(
+                    service.isPreviewing ? "Playing…" : "Preview current tone",
+                    systemImage: "play.circle"
+                )
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(service.isBusy || service.isPreviewing)
+        }
     }
 
     private func busyWarning(message: String) -> some View {

@@ -2,6 +2,8 @@
 
 > 🌍 **Languages:** English | [简体中文 (Simplified Chinese)](./README_zh-CN.md)
 
+> 🍴 **Fork note:** This is a fork of [LinkPass888/AirBeep](https://github.com/LinkPass888/AirBeep) with additional improvements: a manual re-check button, a preview-current-tone button, backups and the pairing credential moved out of File Sharing reach (Library/Application Support), and SHA256 checksums published with each release. See [CHANGELOG.md](./CHANGELOG.md).
+
 AirBeep is an iOS utility that silences the built-in call-recording disclosure tones. Flip one switch to replace the start and stop sounds with equal-length silence; flip it again to restore the original files from the automatic backup.
 
 
@@ -20,7 +22,7 @@ AirBeep requests scoped container access for these system files:
 - `/var/mobile/Library/CallServices/Greetings/default/StartDisclosureWithTone.m4a`
 - `/var/mobile/Library/CallServices/Greetings/default/StopDisclosure.caf`
 
-The replacement files are based on the silent assets from AirliftSilence and keep the original durations. Backups are stored in the app's Documents directory under `AirBeepBackups`.
+The replacement files are based on the silent assets from AirliftSilence and keep the original durations. Backups are stored in the app's Library/Application Support directory under `AirBeepBackups` (older installs are migrated automatically from Documents).
 
 ## Requirements
 

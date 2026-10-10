@@ -4,6 +4,36 @@ All notable changes to **AirBeep** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.5.0] - 2026-10-10
+
+> **English** — Release notes. | **中文** — 发行说明见下方中文版。
+
+### English / Added
+- **Recheck tones button.** The app no longer probes the system files at launch (2.4.0), so the displayed state could go stale after a system language change or iOS update. The new button forces a real read and re-syncs the cached state on demand.
+- **Preview current tone button.** Reads the live system tone files and plays the start disclosure tone back, so you can hear what the other party would hear without placing a test call.
+
+### English / Changed
+- **Backups moved to Library/Application Support.** They were stored in `Documents/AirBeepBackups`, which is exposed via File Sharing — one accidental delete in the Files app and the restore path was gone. Existing backups are migrated automatically on first launch.
+- **Release assets now include a SHA256 checksum** (`airbeep-v<version>-unsigned.ipa.sha256`) so the unsigned IPA can be verified before sideloading.
+
+### English / Security
+- **Pairing file moved out of Documents.** The pairing credential (`aircard_pairing.plist`) was stored in Documents and therefore visible through File Sharing. It now lives in Library/Application Support; legacy copies are migrated once and the Documents copies are deleted. Pairing files are still imported explicitly through the document picker — Documents is no longer auto-scanned.
+
+---
+
+### 中文 / 新增
+- **“重新检测提示音”按钮。** 2.4.0 起 App 启动时不再探测系统文件，改语言或升级系统后界面状态可能过期。新按钮按需真实读取一次并同步缓存状态。
+- **“试听当前提示音”按钮。** 读回系统当前提示音文件并播放开始提示音，不用真打电话也能确认对方会听到什么。
+
+### 中文 / 变更
+- **备份目录搬到 Library/Application Support。** 原来在 `Documents/AirBeepBackups`，文件共享可见，在“文件”App 里误删就没了恢复路径。老备份首次启动自动迁移。
+- **Release 附件新增 SHA256 校验文件**（`airbeep-v<version>-unsigned.ipa.sha256`），侧载前可验包。
+
+### 中文 / 安全
+- **配对文件搬出 Documents。** 配对凭证（`aircard_pairing.plist`）原来放在 Documents，经文件共享可见；现已迁入 Library/Application Support，旧文件迁移一次后删除 Documents 中的副本。配对文件仍通过文档选择器显式导入，不再自动扫描 Documents。
+
+---
+
 ## [2.4.0] - 2026-10-10
 
 > **English** — Release notes. | **中文** — 发行说明见下方中文版。
