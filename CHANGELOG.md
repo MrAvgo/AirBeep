@@ -4,6 +4,20 @@ All notable changes to **AirBeep** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.6.0] - 2026-10-17
+
+> **English** — Release notes. | **中文** — 发行说明见下方中文版。
+
+### English / Fixed
+- **Merged the upstream 2.4.1 exploit fix.** The pinned native Airlift library is rebuilt with the file-read and Lockdown heartbeat patch: on iOS 26 the tone file read was killed by the system because the heartbeat handshake was missing before accessing network services. Setup checks and tone operations now share the configured LocalDevVPN peer (`AIRLIFT_TARGET_HOST`).
+- All 2.5.0 fork features are retained: recheck/preview tone buttons, backups and pairing credential in Library/Application Support, SHA256 checksums on release assets.
+
+### 中文 / 修复
+- **合入上游 2.4.1 的 exploit 修复。** 原生 Airlift 库已用 file-read + Lockdown heartbeat 补丁重建：iOS 26 上读提示音文件被系统掐断，正是因为访问网络服务前缺少 heartbeat 握手。连接检查与提示音读写现共用同一目标地址（`AIRLIFT_TARGET_HOST`）。
+- 2.5.0 的 fork 功能全部保留：重新检测/试听按钮、备份与配对凭证存放在 Library/Application Support、Release 附 SHA256 校验文件。
+
+---
+
 ## [2.5.0] - 2026-10-10
 
 > **English** — Release notes. | **中文** — 发行说明见下方中文版。
@@ -33,6 +47,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **配对文件搬出 Documents。** 配对凭证（`aircard_pairing.plist`）原来放在 Documents，经文件共享可见；现已迁入 Library/Application Support，旧文件迁移一次后删除 Documents 中的副本。配对文件仍通过文档选择器显式导入，不再自动扫描 Documents。
 
 ---
+## [2.4.1] - 2026-10-17
+
+### English / Fixed
+- Configure the native Airlift target once from `AIRLIFT_TARGET_HOST` so setup checks and tone operations share the configured LocalDevVPN peer.
+- Complete the Lockdown heartbeat handshake before accessing network services. Keep the existing heartbeat client alive for each operation and abort its task when the tunnel is dropped, including cached-route connections.
+- Rebuild the pinned native dependency with the file-read and heartbeat patch; retain checksum and exported-symbol verification.
+
+### 中文 / 修复
+- 支持通过构建设置配置 Airlift 连接地址，连接检查与提示音读写共用同一目标。
+- 修复网络 Lockdown 路径缺少 heartbeat 导致服务连接被系统关闭的问题；保活仅限本次操作生命周期。
 
 ## [2.4.0] - 2026-10-10
 
